@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Ballerina Project Build
-        uses: ballerina-platform/ballerina-action@master
+        uses: ballerina-platform/ballerina-action@slbeta2
         with:
           args: 
             build
@@ -25,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Subscriber Examples Build
-        uses: ballerina-platform/ballerina-action@master
+        uses: ballerina-platform/ballerina-action@slbeta2
         with:
           args: 
             build examples/weather_info_subscriber.bal      
