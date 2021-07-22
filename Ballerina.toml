@@ -1,6 +1,6 @@
 [package]
-org = "ayeshalm"
-name = "kafka_weather_reporter"
+org = "ayeshlk"
+name = "weatherReporter"
 version = "0.1.0"
 
 [build-options]

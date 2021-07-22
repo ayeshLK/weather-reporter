@@ -1,0 +1,30 @@
+[weatherReporter.config]
+# The port that is used to start the hub
+HUB_PORT = 9000
+
+# IP and Port of the Kafka bootstrap node
+KAFKA_BOOTSTRAP_NODE = "localhost:9092"
+
+# The interval in which Kafka consumers wait for new messages
+POLLING_INTERVAL = 10.0
+
+# The period in which Kafka close method waits to complete
+GRACEFUL_CLOSE_PERIOD = 5.0
+
+# The period between retry requests
+MESSAGE_DELIVERY_RETRY_INTERVAL = 3.0
+
+# The maximum retry count
+MESSAGE_DELIVERY_COUNT = 3
+
+# The message delivery timeout
+MESSAGE_DELIVERY_TIMEOUT = 10.0
+
+# Weather Info API base URL
+WEATHER_INFO_API = "https://api.openweathermap.org/data/2.5"
+
+# Weather Info API client Key
+API_KEY = "01d21c186757db43aea92d2894d19ec4"
+
+# Weather reporter scheduler running frequency
+REPORTER_SCHEDULED_TIME_IN_SECONDS = 10.0
