@@ -7,14 +7,18 @@ assignees: ''
 
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Description:**
+<!-- Give a brief description of the new feature -->
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+**Describe your problem(s)**
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+**Describe your solution(s)**
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+**Related Issues (optional):**
+<!-- Any related issues such as sub tasks, issues reported in other repositories (e.g component repositories), similar problems, etc. -->
+
+**Suggested Labels (optional):**
+<!-- Optional comma separated list of suggested labels. Non committers can’t assign labels to issues, so this will help issue creators who are not a committer to suggest possible labels-->
+
+**Suggested Assignees (optional):**
+<!--Optional comma separated list of suggested team members who should attend the issue. Non committers can’t assign issues to assignees, so this will help issue creators who are not a committer to suggest possible assignees-->
