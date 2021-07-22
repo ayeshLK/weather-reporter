@@ -1,5 +1,5 @@
 [container.image]
-repository="ballerina"
+repository="ayeshalmeida"
 name="weather_reporter"
 tag="v1"
 
