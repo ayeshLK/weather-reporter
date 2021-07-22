@@ -37,7 +37,7 @@ service /hub on hubListener {
         string cityName = msg.hubTopic;
         lock {
             if !availableJobs.hasKey(cityName) {
-                task:JobId job = check 'service:startWeatherReport(cityName);
+                task:JobId job = check 'service:startWeatherReporter(cityName);
                 availableJobs[cityName] = job;
             }
         }
@@ -45,7 +45,7 @@ service /hub on hubListener {
             string subscriberKey = string `${msg.hubTopic}_${msg.hubCallback}`;
             availableSubscribers[subscriberKey] = msg.cloneReadOnly();
         }
-        check 'service:startNotification(msg);
+        check 'service:startSubscriberNotification(msg.cloneReadOnly());
     }
     
     isolated remote function onUnsubscription(websubhub:Unsubscription msg) returns websubhub:UnsubscriptionAccepted {

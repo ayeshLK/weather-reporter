@@ -1,28 +1,25 @@
 import ballerina/websubhub;
+import ballerinax/kafka;
 import weatherReporter.config;
+import ballerina/lang.value;
 import ballerina/task;
+import ballerina/mime;
 import weatherReporter.persistence;
 import ballerina/log;
 import ballerina/http;
+import weatherReporter.connections as conn;
 
-isolated client class WeatherInfoClient {
-    private final string apiKey;
-    private final http:Client clientEp;
+final http:Client weatherInfoClient = check new(config:WEATHER_INFO_API,
+        retryConfig = {
+            interval: config:MESSAGE_DELIVERY_RETRY_INTERVAL,
+            count: config:MESSAGE_DELIVERY_COUNT,
+            backOffFactor: 2.0,
+            maxWaitInterval: 20
+        },
+        timeout = config:MESSAGE_DELIVERY_TIMEOUT
+);
 
-    isolated function init(string apiKey, string baseUrl, *http:ClientConfiguration config) returns error? {
-        self.apiKey = apiKey;
-        self.clientEp = check new (baseUrl, config);
-    }
-
-    isolated remote function retrieveInfo(string cityName) returns json|error {
-        string servicePath = string`/weather?q=${cityName}&appid=${self.apiKey}`;
-        return self.clientEp->get(servicePath);
-    }
-}
-
-final WeatherInfoClient weatherInfoClient = check new(config:API_KEY, config:WEATHER_INFO_API);
-
-isolated class WeatherInfoReportJob {
+isolated class WeatherReporter {
     *task:Job;
     private final string cityName;
 
@@ -31,9 +28,10 @@ isolated class WeatherInfoReportJob {
     }
 
     public isolated function execute() {
-        json|error response = weatherInfoClient->retrieveInfo(self.cityName);
+        string servicePath = string`/weather?q=${self.cityName}&appid=${config:API_KEY}`;
+        json|error response = weatherInfoClient->get(servicePath);
         if response is json {
-            error? persistingResult = persistence:produceKafkaMessage(self.cityName, response);
+            error? persistingResult = persistence:updateWeatherInfo(self.cityName, response);
             if persistingResult is error {
                 log:printError("Error occurred while persisting the weather information ", err = persistingResult.message());
             }
@@ -41,13 +39,55 @@ isolated class WeatherInfoReportJob {
     }
 }
 
-public isolated function startWeatherReport(string cityName) returns task:JobId|error {
-    WeatherInfoReportJob job = new (cityName);
-    task:JobId jobId = check task:scheduleJobRecurByFrequency(job, 1); 
+public isolated function startWeatherReporter(string cityName) returns task:JobId|error {
+    WeatherReporter weatherReporter = new (cityName);
+    task:JobId jobId = check task:scheduleJobRecurByFrequency(weatherReporter, config:REPORTER_SCHEDULED_TIME_IN_SECONDS); 
     return jobId;
 }
 
-// todo: implement the consumer notification properly
-public isolated function startNotification(websubhub:VerifiedSubscription msg) returns error? {
+public function startSubscriberNotification(websubhub:VerifiedSubscription subscriber) returns error? {
+    kafka:Consumer consumerEp = check conn:createMessageConsumer(subscriber);
+    websubhub:HubClient hubClientEp = check new (subscriber, 
+        retryConfig = {
+            interval: config:MESSAGE_DELIVERY_RETRY_INTERVAL,
+            count: config:MESSAGE_DELIVERY_COUNT,
+            backOffFactor: 2.0,
+            maxWaitInterval: 20
+        },
+        timeout = config:MESSAGE_DELIVERY_TIMEOUT
+    );
+    _ = @strand { thread: "any" } start pollForNewUpdates(hubClientEp, consumerEp);
+}
 
+isolated function pollForNewUpdates(websubhub:HubClient clientEp, kafka:Consumer consumerEp) returns error? {
+    do {
+        while true {
+            kafka:ConsumerRecord[] records = check consumerEp->poll(config:POLLING_INTERVAL);
+            var result = notifySubscribers(records, clientEp, consumerEp);
+            if result is error {
+                log:printError("Error occurred while sending notification to subscriber ", err = result.message());
+            }
+        }
+    } on fail var e {
+        _ = check consumerEp->close(config:GRACEFUL_CLOSE_PERIOD);
+        return e;
+    }
+}
+
+isolated function notifySubscribers(kafka:ConsumerRecord[] records, websubhub:HubClient clientEp, kafka:Consumer consumerEp) returns error? {
+    foreach var kafkaRecord in records {
+        byte[] content = kafkaRecord.value;
+        string message = check string:fromBytes(content);
+        json payload =  check value:fromJsonString(message);
+        websubhub:ContentDistributionMessage distributionMsg = {
+            content: payload,
+            contentType: mime:APPLICATION_JSON
+        };
+        var response = clientEp->notifyContentDistribution(distributionMsg);
+        if (response is error) {
+            return response;
+        } else {
+             _ = check consumerEp->commit();
+        }
+    }
 }
