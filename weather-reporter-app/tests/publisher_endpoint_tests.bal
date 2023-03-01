@@ -3,7 +3,7 @@ import ballerina/http;
 import ballerina/mime;
 import ballerina/test;
 
-final websubhub:PublisherClient publisherClient = check new("http://localhost:9000/hub");
+final websubhub:PublisherClient publisherClient = check new ("http://localhost:9000/hub");
 
 @test:Config {
     groups: ["publisher"]
@@ -45,8 +45,8 @@ function testPublishUpdate() returns error? {
         "event": "publish-update"
     };
     websubhub:Acknowledgement|websubhub:UpdateMessageError response = publisherClient->publishUpdate(
-        "test-topic", 
-        payload = payload, 
+        "test-topic",
+        payload = payload,
         contentType = mime:APPLICATION_FORM_URLENCODED
     );
     if response is websubhub:Acknowledgement {
