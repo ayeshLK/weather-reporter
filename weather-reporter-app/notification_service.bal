@@ -14,6 +14,9 @@ isolated function startSendingNotifications(string location) returns error? {
     [websubhub:VerifiedSubscription, websubhub:HubClient][] newsReceivers = [];
     while true {
         newsReceivers = check getReceiverClients(location);
+        if newsReceivers.length() == 0 {
+            continue;
+        }
         string alert = alerts[check random:createIntInRange(0, alerts.length())];
         foreach var [receiver, clientEp] in newsReceivers {
             websubhub:ContentDistributionSuccess|error response = clientEp->notifyContentDistribution({
