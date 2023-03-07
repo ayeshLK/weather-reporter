@@ -1,11 +1,13 @@
 import ballerina/random;
 import ballerina/mime;
 import ballerina/lang.runtime;
+import ballerina/regex;
+import ballerina/time;
 import ballerina/websubhub;
 
 final readonly & string[] alerts = [
-    "Severe weather alert for [LOCATION] until [TIME]. We will send updates as conditions develop. Please call this number [ALERT_LINE] for assistance or check local media.", 
-    "TORNADO WATCH for [LOCATION] until [TIME]. Storm conditions have worsened, be prepared to move to a safe place. If you are outdoors, in a mobile home or in a vehicle, have a plan to seek shelter and protect yourself. Check local media for more information."
+    "Severe weather alert for [LOCATION] until [TIME]. We will send updates as conditions develop. Please call this number 1919 for assistance or check local media.", 
+    "TORNADO WATCH for [LOCATION] until [TIME]. Storm conditions have worsened, be prepared to move to a safe place. If you are outdoors, in a mobile home or in a vehicle, have a plan to seek shelter and protect yourself. Please call this number 1919 for assistance or check local media."
 ];
 
 isolated map<websubhub:HubClient[]> notificationSenders = {};
@@ -47,12 +49,14 @@ isolated function startSendingNotifications(string location) returns error? {
                 removeNewsReceiver(newsReceiverId);
             }
         }
-        runtime:sleep(600);
+        runtime:sleep(60);
     }
 }
 
-isolated function getReceiverClients(string location) returns [websubhub:VerifiedSubscription, websubhub:HubClient][]|error {
-    return getNewsReceivers(location)
-        .'map(receiver => [receiver, check new websubhub:HubClient(receiver)]);
+isolated function retrieveAlert(string location) returns string|error {
+    string alert = alerts[check random:createIntInRange(0, alerts.length())];
+    alert = regex:replace(alert, "[LOCATION]", location)
+    time:Utc alertExpiryTime = time:utcAddSeconds(time:utcNow(), 3600);
+    alert = regex:replace(alert, "[TIME]", time:utcToCivil(alertExpiryTime).toString());
 }
 

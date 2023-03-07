@@ -4,7 +4,7 @@ import ballerina/websubhub;
 isolated string[] locations = [];
 isolated map<websubhub:VerifiedSubscription> newsReceiversCache = {};
 
-service websubhub:Service /hub on new websubhub:Listener(9000) {
+service /hub on new websubhub:Listener(9000) {
 
     // Topic registration is not supported by this `hub`
     remote function onRegisterTopic(websubhub:TopicRegistration msg)
@@ -52,7 +52,7 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
             newsReceiversCache[newsReceiverId] = subscription;
         }
         if localtionUnavailble {
-            _ = @strand {thread: "any"} start startSendingNotifications(subscription.hubTopic); 
+            _ = start startSendingNotifications(subscription.hubTopic); 
         }
     }
 
