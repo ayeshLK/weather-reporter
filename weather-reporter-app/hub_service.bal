@@ -1,7 +1,8 @@
 import ballerina/http;
 import ballerina/websubhub;
 
-isolated map<websubhub:VerifiedSubscription[]> newsReceiversCache = {};
+isolated string[] locations = [];
+isolated map<websubhub:VerifiedSubscription> newsReceiversCache = {};
 
 service websubhub:Service /hub on new websubhub:Listener(9000) {
 
@@ -25,30 +26,30 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
     }
 
     remote function onSubscriptionValidation(readonly & websubhub:Subscription msg) returns websubhub:SubscriptionDeniedError? {
+        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        boolean newsReceiverAvailable = false;
         lock {
-            websubhub:VerifiedSubscription[]? newsReceiversForLocation = newsReceiversCache[msg.hubTopic];
-            if newsReceiversForLocation is () {
-                return;
-            }
-            boolean newsReceiverAvailable = newsReceiversForLocation.some(receiver => receiver.hubCallback != msg.hubCallback);
-            if newsReceiverAvailable {
-                return error websubhub:SubscriptionDeniedError(
+            newsReceiverAvailable = newsReceiversCache.hasKey(subscriberId);
+        }
+        if newsReceiverAvailable {
+            return error websubhub:SubscriptionDeniedError(
                     string `News receiver for location ${msg.hubTopic} and endpoint ${msg.hubCallback} already available`,
                     statusCode = http:STATUS_NOT_ACCEPTABLE
                 );
-            }
         }
     }
 
     remote function onSubscriptionIntentVerified(readonly & websubhub:VerifiedSubscription msg) returns error? {
         boolean localtionUnavailble = false;
         lock {
-            if newsReceiversCache.hasKey(msg.hubTopic) {
-                newsReceiversCache.get(msg.hubTopic).push(msg);
-            } else {
-                newsReceiversCache[msg.hubTopic] = [msg];
+            if locations.indexOf(msg.hubTopic) is () {
+                locations.push(msg.hubTopic);
                 localtionUnavailble = true;
             }
+        }
+        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        lock {
+            newsReceiversCache[subscriberId] = msg;
         }
         if localtionUnavailble {
             _ = @strand {thread: "any"} start startSendingNotifications(msg.hubTopic); 
@@ -56,42 +57,35 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
     }
 
     remote function onUnsubscriptionValidation(readonly & websubhub:Unsubscription msg) returns websubhub:UnsubscriptionDeniedError? {
+        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        boolean newsReceiverNotAvailable = false;
         lock {
-            websubhub:VerifiedSubscription[]? newsReceiversForLocation = newsReceiversCache[msg.hubTopic];
-            if newsReceiversForLocation is () {
-                return error websubhub:UnsubscriptionDeniedError(
-                    string `News receiver for location ${msg.hubTopic} not available`,
-                    statusCode = http:STATUS_NOT_ACCEPTABLE
-                );
-            }
-            boolean newsReceiverNotAvailable = newsReceiversForLocation.every(receiver => receiver.hubCallback != msg.hubCallback);
-            if newsReceiverNotAvailable {
-                return error websubhub:UnsubscriptionDeniedError(
+            newsReceiverNotAvailable = !newsReceiversCache.hasKey(subscriberId);
+        }
+        if newsReceiverNotAvailable {
+            return error websubhub:UnsubscriptionDeniedError(
                     string `News receiver for location ${msg.hubTopic} and endpoint ${msg.hubCallback} not available`,
                     statusCode = http:STATUS_NOT_ACCEPTABLE
                 );
-            }
         }
     }
 
     remote function onUnsubscriptionIntentVerified(readonly & websubhub:VerifiedUnsubscription msg) returns error? {
-        removeReceiver(msg.hubTopic, msg.hubCallback);
+        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        removeNewsReceiver(subscriberId);
+    }
+}
+
+isolated function removeNewsReceiver(string newsReceiverId) {
+    lock {
+        _ = newsReceiversCache.removeIfHasKey(newsReceiverId);
     }
 }
 
 isolated function getNewsReceivers(string location) returns websubhub:VerifiedSubscription[] {
     lock {
-        if newsReceiversCache.hasKey(location) {
-            return newsReceiversCache.get(location).cloneReadOnly();
-        }
-    }
-    return [];
-}
-
-isolated function removeReceiver(string location, string callbackUrl) {
-    lock {
-        newsReceiversCache[location] = newsReceiversCache
-                .get(location)
-                .filter(receiver => receiver.hubCallback != callbackUrl);
+        return newsReceiversCache
+            .filter(newsReceiver => newsReceiver.hubTopic == location)
+            .toArray().cloneReadOnly();
     }
 }
