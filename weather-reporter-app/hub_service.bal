@@ -25,53 +25,53 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
             "Content update not supported", statusCode = http:STATUS_NOT_IMPLEMENTED);
     }
 
-    remote function onSubscriptionValidation(readonly & websubhub:Subscription msg) returns websubhub:SubscriptionDeniedError? {
-        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
+    remote function onSubscriptionValidation(readonly & websubhub:Subscription subscription) returns websubhub:SubscriptionDeniedError? {
+        string newsReceiverId = string `${subscription.hubTopic}-${subscription.hubCallback}`;
         boolean newsReceiverAvailable = false;
         lock {
             newsReceiverAvailable = newsReceiversCache.hasKey(newsReceiverId);
         }
         if newsReceiverAvailable {
             return error websubhub:SubscriptionDeniedError(
-                    string `News receiver for location ${msg.hubTopic} and endpoint ${msg.hubCallback} already available`,
+                    string `News receiver for location ${subscription.hubTopic} and endpoint ${subscription.hubCallback} already available`,
                     statusCode = http:STATUS_NOT_ACCEPTABLE
                 );
         }
     }
 
-    remote function onSubscriptionIntentVerified(readonly & websubhub:VerifiedSubscription msg) returns error? {
+    remote function onSubscriptionIntentVerified(readonly & websubhub:VerifiedSubscription subscription) returns error? {
         boolean localtionUnavailble = false;
         lock {
-            if locations.indexOf(msg.hubTopic) is () {
-                locations.push(msg.hubTopic);
+            if locations.indexOf(subscription.hubTopic) is () {
+                locations.push(subscription.hubTopic);
                 localtionUnavailble = true;
             }
         }
-        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        string newsReceiverId = string `${subscription.hubTopic}-${subscription.hubCallback}`;
         lock {
-            newsReceiversCache[newsReceiverId] = msg;
+            newsReceiversCache[newsReceiverId] = subscription;
         }
         if localtionUnavailble {
-            _ = @strand {thread: "any"} start startSendingNotifications(msg.hubTopic); 
+            _ = @strand {thread: "any"} start startSendingNotifications(subscription.hubTopic); 
         }
     }
 
-    remote function onUnsubscriptionValidation(readonly & websubhub:Unsubscription msg) returns websubhub:UnsubscriptionDeniedError? {
-        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
+    remote function onUnsubscriptionValidation(readonly & websubhub:Unsubscription unsubscription) returns websubhub:UnsubscriptionDeniedError? {
+        string newsReceiverId = string `${unsubscription.hubTopic}-${unsubscription.hubCallback}`;
         boolean newsReceiverNotAvailable = false;
         lock {
             newsReceiverNotAvailable = !newsReceiversCache.hasKey(newsReceiverId);
         }
         if newsReceiverNotAvailable {
             return error websubhub:UnsubscriptionDeniedError(
-                    string `News receiver for location ${msg.hubTopic} and endpoint ${msg.hubCallback} not available`,
+                    string `News receiver for location ${unsubscription.hubTopic} and endpoint ${unsubscription.hubCallback} not available`,
                     statusCode = http:STATUS_NOT_ACCEPTABLE
                 );
         }
     }
 
-    remote function onUnsubscriptionIntentVerified(readonly & websubhub:VerifiedUnsubscription msg) returns error? {
-        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
+    remote function onUnsubscriptionIntentVerified(readonly & websubhub:VerifiedUnsubscription unsubscription) returns error? {
+        string newsReceiverId = string `${unsubscription.hubTopic}-${unsubscription.hubCallback}`;
         removeNewsReceiver(newsReceiverId);
     }
 }
