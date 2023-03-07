@@ -26,9 +26,9 @@ isolated function startSendingNotifications(string location) returns error? {
 
         // add clients related to newly subscribed news-receivers
         foreach var newsReceiver in currentNewsReceivers {
-            string subscriberId = string `${newsReceiver.hubTopic}-${newsReceiver.hubCallback}`;
-            if !newsDispatchClients.hasKey(subscriberId) {
-                newsDispatchClients[subscriberId] = check new (newsReceiver);
+            string newsReceiverId = string `${newsReceiver.hubTopic}-${newsReceiver.hubCallback}`;
+            if !newsDispatchClients.hasKey(newsReceiverId) {
+                newsDispatchClients[newsReceiverId] = check new (newsReceiver);
             }
         }
         
@@ -36,7 +36,7 @@ isolated function startSendingNotifications(string location) returns error? {
             continue;
         }
         string alert = alerts[check random:createIntInRange(0, alerts.length())];
-        foreach var [receiver, clientEp] in newsDispatchClients.entries() {
+        foreach var [newsReceiverId, clientEp] in newsDispatchClients.entries() {
             websubhub:ContentDistributionSuccess|error response = clientEp->notifyContentDistribution({
                 contentType: mime:APPLICATION_JSON,
                 content: {
@@ -44,7 +44,7 @@ isolated function startSendingNotifications(string location) returns error? {
                 }
             });
             if response is websubhub:SubscriptionDeletedError {
-                removeNewsReceiver(receiver);
+                removeNewsReceiver(newsReceiverId);
             }
         }
         runtime:sleep(600);

@@ -26,10 +26,10 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
     }
 
     remote function onSubscriptionValidation(readonly & websubhub:Subscription msg) returns websubhub:SubscriptionDeniedError? {
-        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
         boolean newsReceiverAvailable = false;
         lock {
-            newsReceiverAvailable = newsReceiversCache.hasKey(subscriberId);
+            newsReceiverAvailable = newsReceiversCache.hasKey(newsReceiverId);
         }
         if newsReceiverAvailable {
             return error websubhub:SubscriptionDeniedError(
@@ -47,9 +47,9 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
                 localtionUnavailble = true;
             }
         }
-        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
         lock {
-            newsReceiversCache[subscriberId] = msg;
+            newsReceiversCache[newsReceiverId] = msg;
         }
         if localtionUnavailble {
             _ = @strand {thread: "any"} start startSendingNotifications(msg.hubTopic); 
@@ -57,10 +57,10 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
     }
 
     remote function onUnsubscriptionValidation(readonly & websubhub:Unsubscription msg) returns websubhub:UnsubscriptionDeniedError? {
-        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
         boolean newsReceiverNotAvailable = false;
         lock {
-            newsReceiverNotAvailable = !newsReceiversCache.hasKey(subscriberId);
+            newsReceiverNotAvailable = !newsReceiversCache.hasKey(newsReceiverId);
         }
         if newsReceiverNotAvailable {
             return error websubhub:UnsubscriptionDeniedError(
@@ -71,8 +71,8 @@ service websubhub:Service /hub on new websubhub:Listener(9000) {
     }
 
     remote function onUnsubscriptionIntentVerified(readonly & websubhub:VerifiedUnsubscription msg) returns error? {
-        string subscriberId = string `${msg.hubTopic}-${msg.hubCallback}`;
-        removeNewsReceiver(subscriberId);
+        string newsReceiverId = string `${msg.hubTopic}-${msg.hubCallback}`;
+        removeNewsReceiver(newsReceiverId);
     }
 }
 
