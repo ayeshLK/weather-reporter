@@ -1,38 +1,32 @@
-# Apache Kafka based Weather Reporter #
+# Weather Reporter #
 
-* This module contains a `Weather Reporter` backed by **Apache Kafka Service**.
-* This module will be periodically retrieve weather updates via open-API and publish it to a **kafka-topic** and subscribers who are subscribed to that particular topic could retrieve weather updates.
+The project contains a Websub-compliant `hub` implementation which acts as a weather alerts distribution hub. News channels that need to receive 
+weather alerts for a particular location can subscribe to the `hub` and receive periodic weather alerts.
 
-## Prerequisetes ##
+Following is the high-level component diagram for this implementation.
 
-* Ballerina SwanLake Alpha3+
-* Ballerina Kafka V2.1.0-alpha5+
-* Apache Kafka 2.7.0
+<img src="weather-reporter-hub.png" alt="drawing" width='500'/>
 
-## How to Build and Deploy ##
+## Run the Hub ##
 
-* Run following command from project root directory.
-
+1. Go into `weather-reporter-hub` directory.
 ```sh
-    bal run
+cd weather-reporter-hub
 ```
 
-## How to setup and run Apache Kafka ##
-
-* Download **Apache Kafka** from [here](https://kafka.apache.org/downloads).
-
-* Extract the `zip` file and go into `kafka_2.13-2.7.X` directory.
-
-* Run following command to start the `kafka zookeeper`.
-
+2. Execute the following command to run the `hub`.
 ```sh
-    ./bin/zookeeper-server-start.sh config/zookeeper.properties
+bal run
 ```
 
-* Run following command to start the `kafka broker`.
+## Run the News Receiver ##
 
+1. Go into `examples/subscriber` directory.
 ```sh
-    ./bin/kafka-server-start.sh config/server.properties
+cd examples/subscriber
 ```
 
-* For more information on **Apache Kafka** go through [following guides](https://kafka.apache.org/quickstart).
+2. Execute the following command to run the `hub`.
+```sh
+bal run news_receiver.bal
+```
