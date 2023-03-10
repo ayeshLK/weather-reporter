@@ -1,15 +1,7 @@
-import ballerina/random;
 import ballerina/mime;
 import ballerina/lang.runtime;
-import ballerina/regex;
-import ballerina/time;
 import ballerina/log;
 import ballerina/websubhub;
-
-final readonly & string[] alerts = [
-    "Severe weather alert for [LOCATION] until [TIME]. We will send updates as conditions develop. Please call this number 1919 for assistance or check local media.", 
-    "TORNADO WATCH for [LOCATION] until [TIME]. Storm conditions have worsened, be prepared to move to a safe place. If you are outdoors, in a mobile home or in a vehicle, have a plan to seek shelter and protect yourself. Please call this number 1919 for assistance or check local media."
-];
 
 isolated function startSendingNotifications(string location) returns error? {
     map<websubhub:HubClient> newsDispatchClients = {};
@@ -33,16 +25,22 @@ isolated function startSendingNotifications(string location) returns error? {
                 newsDispatchClients[newsReceiverId] = check new (newsReceiver);
             }
         }
-        
+
         if newsDispatchClients.length() == 0 {
+            runtime:sleep(60);
             continue;
         }
-        string alert = check retrieveAlert(location);
+        WeatherReport|error weatherReport = getWeatherReport(location);
+        if weatherReport is error {
+            runtime:sleep(60);
+            continue;
+
+        }
         foreach var [newsReceiverId, clientEp] in newsDispatchClients.entries() {
             websubhub:ContentDistributionSuccess|error response = clientEp->notifyContentDistribution({
                 contentType: mime:APPLICATION_JSON,
                 content: {
-                    "weather-alert": alert
+                    "weather-report": weatherReport.toJson()
                 }
             });
             if response is websubhub:SubscriptionDeletedError {
@@ -52,12 +50,3 @@ isolated function startSendingNotifications(string location) returns error? {
         runtime:sleep(60);
     }
 }
-
-isolated function retrieveAlert(string location) returns string|error {
-    string alert = alerts[check random:createIntInRange(0, alerts.length())];
-    alert = regex:replace(alert, "\\[LOCATION\\]", location);
-    time:Utc alertExpiryTime = time:utcAddSeconds(time:utcNow(), 3600);
-    alert = regex:replace(alert, "\\[TIME\\]", time:utcToString(alertExpiryTime));
-    return alert;
-}
-
