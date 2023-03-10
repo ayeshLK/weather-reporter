@@ -1,7 +1,7 @@
 # Weather Reporter #
 
 The project contains a Websub-compliant `hub` implementation which acts as a weather alerts distribution hub. News channels that need to receive 
-weather alerts for a particular location can subscribe to the `hub` and receive periodic weather alerts.
+weather alerts for a particular location can subscribe to the `hub` and receive periodic weather alerts. The `hub` uses [Open Weather Map](https://openweathermap.org/) API to retrieve weather reports for a given location.
 
 Following is the high-level component diagram for this implementation.
 
