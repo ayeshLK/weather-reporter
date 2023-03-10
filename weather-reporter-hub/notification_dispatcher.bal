@@ -1,6 +1,7 @@
 import ballerina/mime;
 import ballerina/lang.runtime;
 import ballerina/log;
+import weather_reporter.config;
 import ballerina/websubhub;
 
 isolated function startSendingNotifications(string location) returns error? {
@@ -22,17 +23,17 @@ isolated function startSendingNotifications(string location) returns error? {
         foreach var newsReceiver in currentNewsReceivers {
             string newsReceiverId = string `${newsReceiver.hubTopic}-${newsReceiver.hubCallback}`;
             if !newsDispatchClients.hasKey(newsReceiverId) {
-                newsDispatchClients[newsReceiverId] = check new (newsReceiver);
+                newsDispatchClients[newsReceiverId] = check createHubClient(newsReceiver);
             }
         }
 
         if newsDispatchClients.length() == 0 {
-            runtime:sleep(60);
+            runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
             continue;
         }
         WeatherReport|error weatherReport = getWeatherReport(location);
         if weatherReport is error {
-            runtime:sleep(60);
+            runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
             continue;
 
         }
@@ -47,6 +48,18 @@ isolated function startSendingNotifications(string location) returns error? {
                 removeNewsReceiver(newsReceiverId);
             }
         }
-        runtime:sleep(60);
+        runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
     }
+}
+
+isolated function createHubClient(websubhub:VerifiedSubscription subscription) returns websubhub:HubClient|error {
+    return new (subscription, {
+        retryConfig: {
+            interval: config:CLIENT_RETRY_INTERVAL,
+            count: config:CLIENT_RETRY_COUNT,
+            backOffFactor: 2.0,
+            maxWaitInterval: 20
+        },
+        timeout: config:CLIENT_TIMEOUT
+    });
 }

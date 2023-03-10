@@ -1,10 +1,11 @@
 import ballerina/http;
+import weather_reporter.config;
 import ballerina/websubhub;
 
 isolated string[] locations = [];
 isolated map<websubhub:VerifiedSubscription> newsReceiversCache = {};
 
-service /hub on new websubhub:Listener(9000) {
+service /hub on new websubhub:Listener(config:HUB_PORT) {
 
     // Topic registration is not supported by this `hub`
     remote function onRegisterTopic(websubhub:TopicRegistration msg)

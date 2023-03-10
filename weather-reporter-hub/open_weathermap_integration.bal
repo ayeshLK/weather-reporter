@@ -1,3 +1,4 @@
+import weather_reporter.config;
 import ballerina/http;
 
 type WeatherItem record {
@@ -53,19 +54,17 @@ type WeatherReport record {
     int cod;
 };
 
-final http:Client openWeatherClient = check new("https://api.openweathermap.org/data/2.5",
+final http:Client openWeatherClient = check new(config:WEATHER_INFO_API,
         retryConfig = {
-            interval: 5.0,
-            count: 3,
+            interval: config:CLIENT_RETRY_INTERVAL,
+            count: config:CLIENT_RETRY_COUNT,
             backOffFactor: 2.0,
             maxWaitInterval: 20
         },
-        timeout = 10.0
+        timeout = config:CLIENT_TIMEOUT
 );
 
-configurable string appkey = "123";
-
 isolated function getWeatherReport(string location) returns WeatherReport|error {
-    return openWeatherClient->get(string`/weather?q=${location}&appid=${appkey}`);
+    return openWeatherClient->get(string`/weather?q=${location}&appid=${config:API_KEY}`);
 }
 
