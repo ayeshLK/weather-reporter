@@ -1,0 +1,18 @@
+[weather_reporter.config]
+# The port that is used to start the hub
+HUB_PORT = 9000
+
+# Weather Info API base URL
+WEATHER_INFO_API = "https://api.openweathermap.org/data/2.5"
+
+# Weather reporter scheduler running frequency
+REPORTER_SCHEDULED_TIME_IN_SECONDS = 1800.0
+
+# The period between retry requests
+CLIENT_RETRY_INTERVAL = 3
+
+# The maximum retry count
+CLIENT_RETRY_COUNT = 3
+
+# The message delivery timeout
+CLIENT_TIMEOUT = 10
