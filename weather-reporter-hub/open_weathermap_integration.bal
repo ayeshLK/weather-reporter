@@ -53,9 +53,6 @@ type WeatherReport record {
     int cod;
 };
 
-
-// HTTP GET: https://api.openweathermap.org/data/2.5/weather?q={location}&appid={appKey}
-
 final http:Client openWeatherClient = check new("https://api.openweathermap.org/data/2.5",
         retryConfig = {
             interval: 5.0,
