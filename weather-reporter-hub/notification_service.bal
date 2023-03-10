@@ -1,62 +1,47 @@
 import ballerina/mime;
-import ballerina/lang.runtime;
 import ballerina/log;
 import weather_reporter.config;
 import weather_reporter.open.weather as weatherApi;
+import ballerina/task;
+import weather_reporter.persistence as persist;
+import ballerinax/kafka;
+import weather_reporter.connections as conn;
 import ballerina/websubhub;
 
-isolated function startSendingNotifications(string location) returns error? {
-    map<websubhub:HubClient> newsDispatchClients = {};
-    while true {
-        log:printInfo("Running news-alert dispatcher for ", location = location);
-        websubhub:VerifiedSubscription[] currentNewsReceivers = getNewsReceivers(location);
-        final readonly & string[] currentNewsReceiverIds = currentNewsReceivers
-            .'map(receiver => string `${receiver.hubTopic}-${receiver.hubCallback}`)
-            .cloneReadOnly();
+isolated class NotificationService {
+    *task:Job;
+    private final string location;
 
-        // remove clients related to unsubscribed news-receivers
-        string[] unsubscribedReceivers = newsDispatchClients.keys().filter(dispatcherId => currentNewsReceiverIds.indexOf(dispatcherId) is ());
-        foreach string unsubscribedReceiver in unsubscribedReceivers {
-            _ = newsDispatchClients.removeIfHasKey(unsubscribedReceiver);
-        }
+    isolated function init(string location) {
+        self.location = location;
+    }
 
-        // add clients related to newly subscribed news-receivers
-        foreach var newsReceiver in currentNewsReceivers {
-            string newsReceiverId = string `${newsReceiver.hubTopic}-${newsReceiver.hubCallback}`;
-            if !newsDispatchClients.hasKey(newsReceiverId) {
-                newsDispatchClients[newsReceiverId] = check createHubClient(newsReceiver);
-            }
-        }
-
-        if newsDispatchClients.length() == 0 {
-            runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
-            continue;
-        }
-        weatherApi:WeatherReport|error weatherReport = weatherApi:getWeatherReport(location);
+    public isolated function execute() {
+        weatherApi:WeatherReport|error weatherReport = weatherApi:getWeatherReport(self.location);
         if weatherReport is error {
             log:printWarn(string `Error occurred while retrieving weather-report: ${weatherReport.message()}`, stackTrace = weatherReport.stackTrace());
-            runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
-            continue;
-
+            return;
         }
-        foreach var [newsReceiverId, clientEp] in newsDispatchClients.entries() {
-            websubhub:ContentDistributionSuccess|error response = clientEp->notifyContentDistribution({
-                contentType: mime:APPLICATION_JSON,
-                content: {
-                    "weather-report": weatherReport.toJson()
-                }
-            });
-            if response is websubhub:SubscriptionDeletedError {
-                log:printWarn("News receiver responded with subscription-delete response, hence removing", id = newsReceiverId);
-                removeNewsReceiver(newsReceiverId);
-            }
+        error? persistResult = persist:publishWeatherNotification(self.location, weatherReport);
+        if persistResult is error {
+            log:printWarn(string `Error occurred while persisting the weather-report: ${persistResult.message()}`, stackTrace = persistResult.stackTrace());
         }
-        runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
     }
 }
 
-isolated function createHubClient(websubhub:VerifiedSubscription subscription) returns websubhub:HubClient|error {
-    return new (subscription, {
+isolated function startNotificationService(string location) returns task:JobId|error {
+    NotificationService notificationService = new (location);
+    return task:scheduleJobRecurByFrequency(notificationService, config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
+}
+
+type UpdateMessageConsumerRecord record {|
+    *kafka:AnydataConsumerRecord;
+    weatherApi:WeatherReport value;
+|};
+
+function startNewsReceiverNotification(websubhub:VerifiedSubscription newsReceiver) returns error? {
+    kafka:Consumer kafkaConsumer = check conn:createMessageConsumer(newsReceiver);
+    websubhub:HubClient hubClient = check new (newsReceiver, {
         retryConfig: {
             interval: config:CLIENT_RETRY_INTERVAL,
             count: config:CLIENT_RETRY_COUNT,
@@ -65,4 +50,45 @@ isolated function createHubClient(websubhub:VerifiedSubscription subscription) r
         },
         timeout: config:CLIENT_TIMEOUT
     });
+    _ = @strand { thread: "any" } start pollForNewUpdates(hubClient, kafkaConsumer, newsReceiver);
+}
+
+isolated function pollForNewUpdates(websubhub:HubClient hubClient, kafka:Consumer kafkaConsumer, websubhub:VerifiedSubscription newsReceiver) returns error? {
+    string location = newsReceiver.hubTopic;
+    string receiverId = string `${newsReceiver.hubTopic}-${newsReceiver.hubCallback}`;
+    do {
+        while true {
+            UpdateMessageConsumerRecord[] records = check kafkaConsumer->poll(config:POLLING_INTERVAL);
+            if !isValidNewsReceiver(location, receiverId) {
+                fail error(string `Subscriber with Id ${receiverId} or topic ${location} is invalid`);
+            }
+            var result = notifySubscribers(records, hubClient, kafkaConsumer);
+            if result is error {
+                log:printError("Error occurred while sending notification to subscriber ", err = result.message());
+            } else {
+                check kafkaConsumer->'commit();
+            }
+        }
+    } on fail var e {
+        log:printError(string `Error occurred while sending notification to news-receiver: ${e.message()}`, stackTrace = e.stackTrace());
+        removeNewsReceiver(receiverId);
+        kafka:Error? result = kafkaConsumer->close(config:GRACEFUL_CLOSE_PERIOD);
+        if result is kafka:Error {
+            log:printError("Error occurred while gracefully closing kafka-consumer", err = result.message());
+        }
+    }
+}
+
+isolated function notifySubscribers(UpdateMessageConsumerRecord[] records, websubhub:HubClient clientEp, kafka:Consumer consumerEp) returns error? {
+    foreach UpdateMessageConsumerRecord kafkaRecord in records {
+        websubhub:ContentDistributionMessage message = {
+            content: kafkaRecord.value.toJson(),
+            contentType: mime:APPLICATION_JSON
+        };
+        websubhub:ContentDistributionSuccess|error response = clientEp->notifyContentDistribution(message);
+        if response is error {
+            return response;
+        }
+    }
+    return consumerEp->'commit();
 }

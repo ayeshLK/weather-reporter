@@ -5,6 +5,15 @@ HUB_PORT = 9000
 # Weather Info API base URL
 WEATHER_INFO_API = "https://api.openweathermap.org/data/2.5"
 
+# IP and Port of the Kafka bootstrap node
+KAFKA_BOOTSTRAP_NODE = "localhost:9092"
+
+# The interval in which Kafka consumers wait for new messages
+POLLING_INTERVAL = 10.0
+
+# The period in which Kafka close method waits to complete
+GRACEFUL_CLOSE_PERIOD = 5.0
+
 # Weather reporter scheduler running frequency
 REPORTER_SCHEDULED_TIME_IN_SECONDS = 1800.0
 

@@ -1,8 +1,9 @@
 import ballerina/http;
 import weather_reporter.config;
+import ballerina/task;
 import ballerina/websubhub;
 
-isolated string[] locations = [];
+isolated map<task:JobId> notificationServices = {};
 isolated map<websubhub:VerifiedSubscription> newsReceiversCache = {};
 
 service /hub on new websubhub:Listener(config:HUB_PORT) {
@@ -41,20 +42,17 @@ service /hub on new websubhub:Listener(config:HUB_PORT) {
     }
 
     remote function onSubscriptionIntentVerified(readonly & websubhub:VerifiedSubscription subscription) returns error? {
-        boolean localtionUnavailble = false;
-        lock {
-            if locations.indexOf(subscription.hubTopic) is () {
-                locations.push(subscription.hubTopic);
-                localtionUnavailble = true;
+        if !validNotificationServiceExists(subscription.hubTopic) {
+            task:JobId notificationService = check startNotificationService(subscription.hubTopic);
+            lock {
+                notificationServices[subscription.hubTopic] = notificationService;
             }
         }
         string newsReceiverId = string `${subscription.hubTopic}-${subscription.hubCallback}`;
         lock {
             newsReceiversCache[newsReceiverId] = subscription;
         }
-        if localtionUnavailble {
-            _ = start startSendingNotifications(subscription.hubTopic); 
-        }
+        check startNewsReceiverNotification(subscription);
     }
 
     remote function onUnsubscriptionValidation(readonly & websubhub:Unsubscription unsubscription) returns websubhub:UnsubscriptionDeniedError? {
@@ -75,6 +73,20 @@ service /hub on new websubhub:Listener(config:HUB_PORT) {
         string newsReceiverId = string `${unsubscription.hubTopic}-${unsubscription.hubCallback}`;
         removeNewsReceiver(newsReceiverId);
     }
+}
+
+isolated function validNotificationServiceExists(string location) returns boolean {
+    lock {
+        return notificationServices.hasKey(location);
+    }
+}
+
+isolated function isValidNewsReceiver(string location, string newsReceiverId) returns boolean {
+    boolean subscriberAvailable = true;
+    lock {
+        subscriberAvailable = newsReceiversCache.hasKey(newsReceiverId);
+    }
+    return validNotificationServiceExists(location) && subscriberAvailable;
 }
 
 isolated function removeNewsReceiver(string newsReceiverId) {
