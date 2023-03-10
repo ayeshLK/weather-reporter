@@ -50,7 +50,7 @@ function startNewsReceiverNotification(websubhub:VerifiedSubscription newsReceiv
         },
         timeout: config:CLIENT_TIMEOUT
     });
-    _ = @strand { thread: "any" } start pollForNewUpdates(hubClient, kafkaConsumer, newsReceiver);
+    _ = start pollForNewUpdates(hubClient, kafkaConsumer, newsReceiver);
 }
 
 isolated function pollForNewUpdates(websubhub:HubClient hubClient, kafka:Consumer kafkaConsumer, websubhub:VerifiedSubscription newsReceiver) returns error? {
