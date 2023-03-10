@@ -2,6 +2,7 @@ import ballerina/mime;
 import ballerina/lang.runtime;
 import ballerina/log;
 import weather_reporter.config;
+import weather_reporter.open.weather as weatherApi;
 import ballerina/websubhub;
 
 isolated function startSendingNotifications(string location) returns error? {
@@ -31,7 +32,7 @@ isolated function startSendingNotifications(string location) returns error? {
             runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
             continue;
         }
-        WeatherReport|error weatherReport = getWeatherReport(location);
+        weatherApi:WeatherReport|error weatherReport = weatherApi:getWeatherReport(location);
         if weatherReport is error {
             runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
             continue;

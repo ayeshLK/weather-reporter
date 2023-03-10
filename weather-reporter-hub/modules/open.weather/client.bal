@@ -1,14 +1,14 @@
 import weather_reporter.config;
 import ballerina/http;
 
-type WeatherItem record {
+public type WeatherItem record {
     int id;
     string main;
     string description;
     string icon;
 };
 
-type Main record {
+public type Main record {
     decimal temp;
     decimal feels_like;
     decimal temp_min;
@@ -19,13 +19,13 @@ type Main record {
     int grnd_level;
 };
 
-type Wind record {
+public type Wind record {
     decimal speed;
     int deg;
     decimal gust;
 };
 
-type Sys record {
+public type Sys record {
     int 'type;
     int id;
     string country;
@@ -33,7 +33,7 @@ type Sys record {
     int sunset;
 };
 
-type WeatherReport record {
+public type WeatherReport record {
     record {|
         decimal lon;
         decimal lat;
@@ -64,7 +64,10 @@ final http:Client openWeatherClient = check new(config:WEATHER_INFO_API,
         timeout = config:CLIENT_TIMEOUT
 );
 
-isolated function getWeatherReport(string location) returns WeatherReport|error {
+# Retrieves weather report for a given location.
+#
+# + location - Name of the location
+# + return - A `WeatherReport` or else an `error`
+public isolated function getWeatherReport(string location) returns WeatherReport|error {
     return openWeatherClient->get(string`/weather?q=${location}&appid=${config:API_KEY}`);
 }
-
