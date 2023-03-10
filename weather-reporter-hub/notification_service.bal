@@ -34,6 +34,7 @@ isolated function startSendingNotifications(string location) returns error? {
         }
         weatherApi:WeatherReport|error weatherReport = weatherApi:getWeatherReport(location);
         if weatherReport is error {
+            log:printWarn(string `Error occurred while retrieving weather-report: ${weatherReport.message()}`, stackTrace = weatherReport.stackTrace());
             runtime:sleep(config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
             continue;
 
@@ -46,6 +47,7 @@ isolated function startSendingNotifications(string location) returns error? {
                 }
             });
             if response is websubhub:SubscriptionDeletedError {
+                log:printWarn("News receiver responded with subscription-delete response, hence removing", id = newsReceiverId);
                 removeNewsReceiver(newsReceiverId);
             }
         }
