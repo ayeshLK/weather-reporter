@@ -3,7 +3,7 @@ import weather_reporter.config;
 import ballerina/task;
 import ballerina/websubhub;
 
-isolated map<task:JobId> notificationServices = {};
+isolated map<task:JobId> notificationSenders = {};
 isolated map<websubhub:VerifiedSubscription> newsReceiversCache = {};
 
 service /hub on new websubhub:Listener(config:HUB_PORT) {
@@ -42,10 +42,10 @@ service /hub on new websubhub:Listener(config:HUB_PORT) {
     }
 
     remote function onSubscriptionIntentVerified(readonly & websubhub:VerifiedSubscription subscription) returns error? {
-        if !validNotificationServiceExists(subscription.hubTopic) {
-            task:JobId notificationService = check startNotificationService(subscription.hubTopic);
+        if !validNotificationSenderExists(subscription.hubTopic) {
+            task:JobId notificationService = check startNotificationSender(subscription.hubTopic);
             lock {
-                notificationServices[subscription.hubTopic] = notificationService;
+                notificationSenders[subscription.hubTopic] = notificationService;
             }
         }
         string newsReceiverId = string `${subscription.hubTopic}-${subscription.hubCallback}`;
@@ -75,9 +75,9 @@ service /hub on new websubhub:Listener(config:HUB_PORT) {
     }
 }
 
-isolated function validNotificationServiceExists(string location) returns boolean {
+isolated function validNotificationSenderExists(string location) returns boolean {
     lock {
-        return notificationServices.hasKey(location);
+        return notificationSenders.hasKey(location);
     }
 }
 
@@ -86,7 +86,7 @@ isolated function isValidNewsReceiver(string location, string newsReceiverId) re
     lock {
         subscriberAvailable = newsReceiversCache.hasKey(newsReceiverId);
     }
-    return validNotificationServiceExists(location) && subscriberAvailable;
+    return validNotificationSenderExists(location) && subscriberAvailable;
 }
 
 isolated function removeNewsReceiver(string newsReceiverId) {

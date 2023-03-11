@@ -8,7 +8,7 @@ import ballerinax/kafka;
 import weather_reporter.connections as conn;
 import ballerina/websubhub;
 
-isolated class NotificationService {
+isolated class NotificationSender {
     *task:Job;
     private final string location;
 
@@ -29,8 +29,8 @@ isolated class NotificationService {
     }
 }
 
-isolated function startNotificationService(string location) returns task:JobId|error {
-    NotificationService notificationService = new (location);
+isolated function startNotificationSender(string location) returns task:JobId|error {
+    NotificationSender notificationService = new (location);
     return task:scheduleJobRecurByFrequency(notificationService, config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
 }
 
