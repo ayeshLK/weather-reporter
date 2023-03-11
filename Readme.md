@@ -7,19 +7,28 @@ Following is the high-level component diagram for this implementation.
 
 <img src="weather-reporter-hub.png" alt="drawing" width='500'/>
 
-## Run the Hub ##
+## Run the System ##
 
-1. Go into `weather-reporter-hub` directory.
+### Setting up Apache Kafka ###
+
+### Run the Hub ###
+
+1. Get the `API_KEY` from [Open Weather Map](https://openweathermap.org/) and set up `OPEN_WEATHER_APP_KEY` environment variable.
+```sh
+export OPEN_WEATHER_APP_KEY="xxxx"
+```
+
+2. Go into `weather-reporter-hub` directory.
 ```sh
 cd weather-reporter-hub
 ```
 
-2. Execute the following command to run the `hub`.
+3. Execute the following command to run the `hub`.
 ```sh
 bal run
 ```
 
-## Run the News Receiver ##
+### Run the News Receiver ###
 
 1. Go into `examples/subscriber` directory.
 ```sh
