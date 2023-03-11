@@ -39,7 +39,7 @@ type UpdateMessageConsumerRecord record {|
     weatherApi:WeatherReport value;
 |};
 
-function startNewsReceiverNotification(websubhub:VerifiedSubscription newsReceiver) returns error? {
+function startNotificationReceiver(websubhub:VerifiedSubscription newsReceiver) returns error? {
     kafka:Consumer kafkaConsumer = check conn:createMessageConsumer(newsReceiver);
     websubhub:HubClient hubClient = check new (newsReceiver, {
         retryConfig: {

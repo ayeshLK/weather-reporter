@@ -52,7 +52,7 @@ service /hub on new websubhub:Listener(config:HUB_PORT) {
         lock {
             newsReceiversCache[newsReceiverId] = subscription;
         }
-        check startNewsReceiverNotification(subscription);
+        check startNotificationReceiver(subscription);
     }
 
     remote function onUnsubscriptionValidation(readonly & websubhub:Unsubscription unsubscription) returns websubhub:UnsubscriptionDeniedError? {
