@@ -9,7 +9,7 @@ Following is the high-level component diagram for this implementation.
 
 ## Usage ##
 
-This section discusses how to setup and run the deployment of the weather reporter `hub`.
+This section discusses how to set up and run the deployment of the weather reporter `hub`.
 
 ### Setting up Apache Kafka ###
 
