@@ -25,14 +25,6 @@ public type Wind record {
     decimal gust;
 };
 
-public type Sys record {
-    int 'type;
-    int id;
-    string country;
-    int sunrise;
-    int sunset;
-};
-
 public type WeatherReport record {
     record {|
         decimal lon;
@@ -47,7 +39,6 @@ public type WeatherReport record {
         int all;
     |} clouds;
     int dt;
-    Sys sys;
     int timezone;
     int id;
     string name;

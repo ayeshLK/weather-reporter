@@ -1,6 +1,7 @@
 import ballerina/http;
 import weather_reporter.config;
 import ballerina/task;
+import ballerina/log;
 import ballerina/websubhub;
 
 isolated map<task:JobId> notificationSenders = {};
@@ -72,12 +73,27 @@ service /hub on new websubhub:Listener(config:HUB_PORT) {
     remote function onUnsubscriptionIntentVerified(readonly & websubhub:VerifiedUnsubscription unsubscription) returns error? {
         string newsReceiverId = string `${unsubscription.hubTopic}-${unsubscription.hubCallback}`;
         removeNewsReceiver(newsReceiverId);
+        boolean otherNewsReceiversAvailable = newsReceiversAvailable(unsubscription.hubTopic);
+        if otherNewsReceiversAvailable {
+            return;
+        }
+        log:printWarn(string `No active news-receiver found for location ${unsubscription.hubTopic}, hence stopping the notification sender`);
+        task:JobId? notificationSender = removeNotificationSender(unsubscription.hubTopic);
+        if notificationSender is task:JobId {
+            return task:unscheduleJob(notificationSender);
+        }
     }
 }
 
 isolated function validNotificationSenderExists(string location) returns boolean {
     lock {
         return notificationSenders.hasKey(location);
+    }
+}
+
+isolated function removeNotificationSender(string location) returns task:JobId? {
+    lock {
+        return notificationSenders.removeIfHasKey(location);
     }
 }
 
@@ -95,10 +111,8 @@ isolated function removeNewsReceiver(string newsReceiverId) {
     }
 }
 
-isolated function getNewsReceivers(string location) returns websubhub:VerifiedSubscription[] {
+isolated function newsReceiversAvailable(string location) returns boolean {
     lock {
-        return newsReceiversCache
-            .filter(newsReceiver => newsReceiver.hubTopic == location)
-            .toArray().cloneReadOnly();
+        return newsReceiversCache.toArray().some(newsReceiver => newsReceiver.hubTopic == location);
     }
 }

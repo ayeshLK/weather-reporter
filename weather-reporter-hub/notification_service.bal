@@ -65,6 +65,7 @@ isolated function pollForNewUpdates(websubhub:HubClient hubClient, kafka:Consume
             var result = notifySubscribers(records, hubClient, kafkaConsumer);
             if result is error {
                 log:printError("Error occurred while sending notification to subscriber ", err = result.message());
+                check result;
             } else {
                 check kafkaConsumer->'commit();
             }
