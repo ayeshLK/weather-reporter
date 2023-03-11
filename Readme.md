@@ -7,6 +7,23 @@ Following is the high-level component diagram for this implementation.
 
 <img src="weather-reporter-hub.png" alt="drawing" width='500'/>
 
+## Implementation ##
+
+As depicted in the component diagram, the implementation is backed by the Apache Kafka message broker. Therefore, the Apache Kafka message broker will be doing 
+most of the heavy lifting. 
+
+The following flow diagram depicts the notification dispatching flow with the Apache Kafka integration.
+
+<img src="notification-dispatch-flow.png" alt="drawing" width='500'/>
+
+According to the flow diagram, there are two components, namely `Notification Sender` and `Notification Receiver` available within the `hub`. The `Notification Sender` component periodically publishes weather reports into a Kafka topic. The `Notification Receiver` component listens to the Kafka topic and upon receiving an event, it forwards the message to the `News Receiver` (News channel). Each `Notification Receiver` component is directly associated with a corresponding `News Receiver` and each `Notification Sender` is directly associated with a particular location for which the weather reports are generated.
+
+The diagram below illustrates how the components within the `hub` are mapped to Kafka topics and consumer groups.
+
+<img src="kafka-topic-consumer-group-mapping.png" alt="drawing" width='500'/>
+
+As every `Notification Sender` is linked to a location, a corresponding Kafka topic will be assigned to each location. Additionally, since each `Notification Receiver` is connected to a `News Receiver`, a unique Kafka consumer group will be allocated to every `Notification Receiver`.
+
 ## Usage ##
 
 This section discusses how to set up and run the deployment of the weather reporter `hub`.
