@@ -7,7 +7,11 @@ Following is the high-level component diagram for this implementation.
 
 <img src="weather-reporter-hub.png" alt="drawing" width='500'/>
 
-## Run the Hub ##
+## Usage ##
+
+This section discusses how to set up and run the deployment of the weather reporter `hub`.
+
+### Starting the Hub ###
 
 1. Get the `API_KEY` from [Open Weather Map](https://openweathermap.org/) and set up `OPEN_WEATHER_APP_KEY` environment variable.
 ```sh
@@ -19,19 +23,29 @@ export OPEN_WEATHER_APP_KEY="xxxx"
 cd weather-reporter-hub
 ```
 
-3. Execute the following command to run the `hub`.
+3. Execute the following command to build the `hub` project.
 ```sh
-bal run
+bal build
 ```
 
-## Run the News Receiver ##
+4. Execute the following command to run the `hub`.
+```sh
+bal run target/bin/weather_reporter.jar
+```
+
+### Subscribing to the weather notifications ###
 
 1. Go into `examples/subscriber` directory.
 ```sh
 cd examples/subscriber
 ```
 
-2. Execute the following command to run the `hub`.
+2. Execute the following command to build the sample news receiver.
 ```sh
-bal run news_receiver.bal
+bal build news_receiver.bal
+```
+
+3. Execute the following command to run the sample news receiver.
+```sh
+bal run news_receiver.jar
 ```
