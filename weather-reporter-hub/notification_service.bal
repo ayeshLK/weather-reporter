@@ -30,8 +30,8 @@ isolated class NotificationSender {
 }
 
 isolated function startNotificationSender(string location) returns task:JobId|error {
-    NotificationSender notificationService = new (location);
-    return task:scheduleJobRecurByFrequency(notificationService, config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
+    NotificationSender notificationSender = new (location);
+    return task:scheduleJobRecurByFrequency(notificationSender, config:REPORTER_SCHEDULED_TIME_IN_SECONDS);
 }
 
 type UpdateMessageConsumerRecord record {|
