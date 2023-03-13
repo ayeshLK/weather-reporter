@@ -91,5 +91,4 @@ isolated function notifySubscribers(UpdateMessageConsumerRecord[] records, websu
             return response;
         }
     }
-    return consumerEp->'commit();
 }
