@@ -1,6 +1,6 @@
 [package]
-org = "ayeshlk"
-name = "weatherReporter"
+org = "ayesh"
+name = "weather_reporter"
 version = "0.1.0"
 
 [build-options]

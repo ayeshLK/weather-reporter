@@ -1,14 +1,14 @@
+import weather_reporter.config;
 import ballerina/websubhub;
 import ballerinax/kafka;
-import weatherReporter.config;
 
-// Producer which persist the current in-memory state of the Hub & weather details
-kafka:ProducerConfiguration statePersistConfig = {
-    clientId: "hub-state-persist",
+// Producer which persist the messages related to weather details
+kafka:ProducerConfiguration messagePersistConfig = {
+    clientId: "message-persist-client",
     acks: "1",
     retryCount: 3
 };
-public final kafka:Producer statePersistProducer = check new (config:KAFKA_BOOTSTRAP_NODE, statePersistConfig);
+public final kafka:Producer messagePersistProducer = check new (config:KAFKA_BOOTSTRAP_NODE, messagePersistConfig);
 
 # Creates a `kafka:Consumer` for a subscriber.
 # 
