@@ -12,21 +12,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Weather Reporter Hub Build
-        uses: ballerina-platform/ballerina-action@2201.4.0
-        env:
-          WORKING_DIR: weather-reporter-hub
+      - name: Setup Ballerina
+        uses: ballerina-platform/setup-ballerina@v1
         with:
-          args: 
-            build
+          version: 2201.4.0
+      - name: Weather Reporter Hub Build
+        run: bal build 
+        working-directory: weather-reporter-hub 
 
   subscriber-example:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Subscriber Examples Build
-        uses: ballerina-platform/ballerina-action@2201.4.0
+      - name: Setup Ballerina
+        uses: ballerina-platform/setup-ballerina@v1
         with:
-          args: 
-            build examples/subscriber/news_receiver.bal      
+          version: 2201.4.0
+      - name: Subscriber Examples Build
+        run: bal build news_receiver.bal
+        working-directory: examples/subscriber     
