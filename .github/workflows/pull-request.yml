@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup Ballerina
-        uses: ballerina-platform/ballerina-action@v1
+        uses: ballerina-platform/setup-ballerina@v1
         with:
           version: 2201.4.0
       - name: Weather Reporter Hub Build
@@ -26,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup Ballerina
-        uses: ballerina-platform/ballerina-action@v1
+        uses: ballerina-platform/setup-ballerina@v1
         with:
           version: 2201.4.0
       - name: Subscriber Examples Build
